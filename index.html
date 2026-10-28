@@ -1,82 +1,79 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#050b16">
   <title>SAM AI — Personal Assistant</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       min-height: 100vh;
+      background: radial-gradient(circle at top, #12325a, #050812 68%);
       color: #eaf6ff;
-      background: radial-gradient(circle at top, #102a50, #050812 65%);
       font-family: Arial, sans-serif;
       text-align: center;
     }
 
     header {
-      padding: 22px 12px;
-      font-size: 25px;
-      font-weight: bold;
-      letter-spacing: 3px;
+      padding: 22px 10px;
       color: #63dfff;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 4px;
     }
 
     .core {
-      width: 175px;
-      height: 175px;
-      margin: 45px auto 25px;
+      width: 155px;
+      height: 155px;
+      margin: 25px auto;
       border: 2px solid #39cfff;
       border-radius: 50%;
       display: grid;
       place-items: center;
-      background: radial-gradient(circle, #164b78, #071225 68%);
-      box-shadow: 0 0 25px #168bdc, inset 0 0 25px #168bdc;
-      animation: pulse 3s infinite ease-in-out;
+      background: radial-gradient(circle, #164b78, #071225 70%);
+      box-shadow: 0 0 30px #168bdc, inset 0 0 25px #168bdc;
+      animation: pulse 3s infinite;
     }
 
     .core span {
-      font-size: 48px;
-      font-weight: bold;
+      font-size: 42px;
       text-shadow: 0 0 18px #55dfff;
     }
 
     @keyframes pulse {
-      50% {
-        box-shadow: 0 0 45px #168bdc, inset 0 0 35px #168bdc;
-        transform: scale(1.04);
-      }
+      50% { transform: scale(1.04); }
     }
 
-    .status {
+    #status {
       color: #73dfff;
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 2px;
-      margin-bottom: 25px;
+      margin: 15px;
     }
 
     .chat {
-      width: 90%;
-      max-width: 500px;
-      margin: auto;
-      padding: 18px;
+      width: 92%;
+      max-width: 520px;
+      margin: 20px auto;
+      padding: 16px;
       border: 1px solid #1b4565;
       border-radius: 18px;
       background: #0a1423;
     }
 
     #reply {
-      min-height: 48px;
+      min-height: 70px;
+      max-height: 40vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
       line-height: 1.6;
-      color: #d7edff;
-      margin-bottom: 15px;
+      text-align: left;
+      margin-bottom: 16px;
     }
 
     input {
@@ -87,25 +84,23 @@
       background: #050b16;
       color: white;
       font-size: 16px;
-      outline: none;
     }
 
     button {
       width: 100%;
       padding: 14px;
-      margin-top: 12px;
+      margin-top: 10px;
       border: 0;
       border-radius: 10px;
       background: #087eae;
       color: white;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
-      cursor: pointer;
     }
 
-    button:active {
-      transform: scale(.98);
-    }
+    button:disabled { opacity: .5; }
+
+    .secondary { background: #17334e; }
 
     .note {
       margin: 22px 12px;
@@ -118,16 +113,11 @@
 <body>
   <header>◈ SAM AI</header>
 
-  <div class="core">
-    <span>SAM</span>
-  </div>
-
-  <div class="status" id="status">PERSONAL AI ASSISTANT</div>
+  <div class="core"><span>SAM</span></div>
+  <div id="status">PERSONAL AI ASSISTANT</div>
 
   <main class="chat">
-    <div id="reply">
-      नमस्ते! मैं SAM हूँ। अपना संदेश लिखकर मुझसे बात शुरू करो।
-    </div>
+    <div id="reply">नमस्ते! मैं SAM हूँ। अब मुझसे कोई सवाल पूछो।</div>
 
     <input
       id="message"
@@ -137,51 +127,97 @@
     >
 
     <button id="send">SEND MESSAGE</button>
-    <button id="voice">🎙️ VOICE INPUT</button>
+    <button id="voice" class="secondary">🎙️ VOICE INPUT</button>
+    <button id="speak" class="secondary">🔊 READ LAST ANSWER</button>
   </main>
 
   <div class="note">
-    SAM AI · INITIAL PROTOTYPE · AI CONNECTION NOT YET CONFIGURED
+    SAM AI · GEMINI CONNECTION · PERSONAL ASSISTANT
   </div>
 
   <script>
+    const API_URL =
+      "https://sam-ai-brain.yashchouhan313918.workers.dev/";
+
     const message = document.getElementById("message");
     const reply = document.getElementById("reply");
     const status = document.getElementById("status");
+    const send = document.getElementById("send");
 
-    function respond() {
+    let lastAnswer = "";
+
+    async function respond() {
       const text = message.value.trim();
+      if (!text || send.disabled) return;
 
-      if (!text) {
-        reply.textContent = "पहले अपना संदेश लिखो।";
-        return;
+      send.disabled = true;
+      status.textContent = "SAM IS THINKING...";
+      reply.textContent = "सोच रहा हूँ...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+          throw new Error(data.details || data.error || "Request failed");
+        }
+
+        lastAnswer = data.answer || "कोई जवाब नहीं मिला।";
+        reply.textContent = lastAnswer;
+        status.textContent = "SAM IS READY";
+        message.value = "";
+      } catch (error) {
+        reply.textContent =
+          "SAM अभी जवाब नहीं दे पाया। इंटरनेट कनेक्शन जाँचो। " +
+          "अगर समस्या जारी रहे, तो Worker का कोड और API सेटिंग जाँचनी होगी।";
+        status.textContent = "CONNECTION ERROR";
+        console.error(error);
+      } finally {
+        send.disabled = false;
       }
-
-      reply.textContent =
-        "तुमने कहा: " + text +
-        " — SAM का AI Brain अभी कनेक्ट नहीं हुआ है।";
-
-      message.value = "";
     }
 
-    document.getElementById("send").addEventListener("click", respond);
+    send.addEventListener("click", respond);
 
     message.addEventListener("keydown", event => {
       if (event.key === "Enter") respond();
     });
 
-    document.getElementById("voice").addEventListener("click", () => {
-      const SpeechRecognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        reply.textContent =
-          "इस ब्राउज़र में Voice Input उपलब्ध नहीं है। Chrome में HTTPS पर खोलकर कोशिश करो।";
+    document.getElementById("speak").addEventListener("click", () => {
+      if (!lastAnswer) {
+        reply.textContent = "पहले SAM से कोई सवाल पूछो।";
         return;
       }
 
-      const recognition = new SpeechRecognition();
+      if (!("speechSynthesis" in window)) {
+        reply.textContent = "इस ब्राउज़र में Voice Reply उपलब्ध नहीं है।";
+        return;
+      }
+
+      speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(lastAnswer);
+      utterance.lang = "hi-IN";
+      speechSynthesis.speak(utterance);
+    });
+
+    document.getElementById("voice").addEventListener("click", () => {
+      const Recognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+      if (!Recognition) {
+        reply.textContent =
+          "Voice Input उपलब्ध नहीं है। Chrome में वेबसाइट खोलकर कोशिश करो।";
+        return;
+      }
+
+      const recognition = new Recognition();
       recognition.lang = "hi-IN";
       recognition.interimResults = false;
 
@@ -194,18 +230,22 @@
       };
 
       recognition.onerror = () => {
-        status.textContent = "VOICE INPUT UNAVAILABLE";
+        status.textContent = "VOICE INPUT ERROR";
         reply.textContent =
           "माइक्रोफोन की अनुमति और इंटरनेट कनेक्शन जाँचो।";
       };
 
       recognition.onend = () => {
         if (status.textContent === "LISTENING...") {
-          status.textContent = "PERSONAL AI ASSISTANT";
+          status.textContent = "SAM IS READY";
         }
       };
 
-      recognition.start();
+      try {
+        recognition.start();
+      } catch {
+        status.textContent = "VOICE INPUT ERROR";
+      }
     });
   </script>
 </body>
